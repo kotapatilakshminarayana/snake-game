@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake Game</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #1D9E75;
+      margin-bottom: 0.25rem;
+    }
+
+    #tagline {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+
+    #stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      gap: 10px;
+      margin-bottom: 1.2rem;
+    }
+
+    .stat-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-val {
+      font-size: 22px;
+      font-weight: 600;
+      color: #f0f0f0;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      width: 360px;
+      height: 360px;
+      border: 1px solid #2a2a2a;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    canvas { display: block; }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15,15,15,0.97);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      border-radius: 14px;
+    }
+
+    #overlay.hidden { display: none; }
+
+    #ov-title { font-size: 26px; font-weight: 600; color: #f0f0f0; }
+    #ov-score-big { font-size: 48px; font-weight: 700; color: #1D9E75; display: none; }
+    #ov-sub { font-size: 13px; color: #666; }
+
+    .ov-btn {
+      padding: 10px 30px;
+      font-size: 15px;
+      font-weight: 500;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .ov-btn:hover { background: #252525; border-color: #1D9E75; color: #1D9E75; }
+
+    #top-bar {
+      width: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    #level-badge {
+      font-size: 12px;
+      font-weight: 500;
+      color: #1D9E75;
+      background: rgba(29,158,117,0.12);
+      border: 1px solid rgba(29,158,117,0.25);
+      border-radius: 20px;
+      padding: 3px 12px;
+    }
+
+    #mute-btn {
+      width: 34px; height: 34px;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    #mute-btn:hover { border-color: #444; color: #f0f0f0; }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .ctrl-row { display: flex; gap: 6px; }
+
+    .ctrl-btn {
+      width: 46px; height: 46px;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none;
+      transition: background 0.1s;
+    }
+
+    .ctrl-btn:active { background: #252525; transform: scale(0.95); }
+
+    #lb-section {
+      width: 360px;
+      margin-top: 1.5rem;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #lb-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #161616;
+    }
+
+    #lb-title { font-size: 14px; font-weight: 500; color: #aaa; }
+
+    #lb-clear {
+      font-size: 12px;
+      color: #555;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: inherit;
+    }
+
+    #lb-clear:hover { color: #aaa; }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 50px 52px;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #1e1e1e;
+      background: #111;
+    }
+
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row.highlight { background: #141f1b; }
+
+    .lb-rank { font-size: 13px; color: #555; font-weight: 500; }
+    .lb-rank.gold { color: #EF9F27; }
+
+    .lb-name-input {
+      font-size: 13px;
+      color: #ccc;
+      border: none;
+      background: none;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+    }
+
+    .lb-name-input:focus { color: #1D9E75; }
+
+    .lb-score { font-size: 14px; font-weight: 600; color: #1D9E75; text-align: right; }
+    .lb-date { font-size: 11px; color: #444; text-align: right; }
+
+    #lb-empty {
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+      background: #111;
+    }
+
+    #footer {
+      margin-top: 2rem;
+      font-size: 12px;
+      color: #333;
+    }
+
+    #footer a { color: #1D9E75; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<h1>Snake</h1>
+<p id="tagline">Classic snake — eat, grow, survive</p>
+
+<div id="top-bar">
+  <div id="stats-row">
+    <div class="stat-card"><span class="stat-label">Score</span><span class="stat-val" id="score">0</span></div>
+    <div class="stat-card"><span class="stat-label">Best</span><span class="stat-val" id="best">0</span></div>
+    <div class="stat-card"><span class="stat-label">Length</span><span class="stat-val" id="length">3</span></div>
+  </div>
+</div>
+
+<div style="width:360px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+  <div id="level-badge">Level <span id="lvl-num">1</span></div>
+  <button id="mute-btn" title="Toggle sound">♪</button>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="canvas" width="360" height="360"></canvas>
+  <div id="overlay">
+    <div id="ov-title">Snake</div>
+    <div id="ov-score-big"></div>
+    <div id="ov-sub">Use arrow keys or buttons below</div>
+    <button class="ov-btn" id="start-btn">Start game</button>
+  </div>
+</div>
+
+<div id="controls">
+  <div class="ctrl-row"><button class="ctrl-btn" id="btn-up">▲</button></div>
+  <div class="ctrl-row">
+    <button class="ctrl-btn" id="btn-left">◀</button>
+    <button class="ctrl-btn" id="btn-down">▼</button>
+    <button class="ctrl-btn" id="btn-right">▶</button>
+  </div>
+</div>
+
+<div id="lb-section">
+  <div id="lb-header">
+    <span id="lb-title">Leaderboard</span>
+    <button id="lb-clear">Clear</button>
+  </div>
+  <div id="lb-body">
+    <div id="lb-empty">No scores yet — play to get on the board!</div>
+  </div>
+</div>
+
+<p id="footer">Built with HTML5 Canvas &amp; Web Audio API</p>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ov-title');
+  const ovSub = document.getElementById('ov-sub');
+  const ovBig = document.getElementById('ov-score-big');
+  const startBtn = document.getElementById('start-btn');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const lengthEl = document.getElementById('length');
+  const lvlNum = document.getElementById('lvl-num');
+  const lbBody = document.getElementById('lb-body');
+  const muteBtn = document.getElementById('mute-btn');
+
+  const COLS = 18, ROWS = 18, CELL = 360 / 18;
+  let snake, dir, nextDir, food, score, best = 0, gameLoop, running = false, level, muted = false, lastScore = null;
+
+  let ac = null;
+  function getAC() { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); return ac; }
+  function playTone(freq, type, dur, vol) {
+    if (muted) return;
+    try {
+      const a = getAC(), o = a.createOscillator(), g = a.createGain();
+      o.connect(g); g.connect(a.destination);
+      o.type = type; o.frequency.setValueAtTime(freq, a.currentTime);
+      g.gain.setValueAtTime(vol || 0.15, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+      o.start(); o.stop(a.currentTime + dur);
+    } catch (e) {}
+  }
+  function playEat() { playTone(660, 'sine', 0.12, 0.18); setTimeout(() => playTone(880, 'sine', 0.1, 0.12), 80); }
+  function playDie() { playTone(220, 'sawtooth', 0.15, 0.2); setTimeout(() => playTone(150, 'sawtooth', 0.25, 0.18), 120); }
+  function playLevelUp() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 'sine', 0.15, 0.15), i * 80)); }
+
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    muteBtn.textContent = muted ? '✕' : '♪';
+    muteBtn.style.color = muted ? '#444' : '#aaa';
+  });
+
+  let leaderboard = [];
+  try { const s = localStorage.getItem('snake_lb_v2'); if (s) leaderboard = JSON.parse(s); } catch (e) {}
+  function saveLB() { try { localStorage.setItem('snake_lb_v2', JSON.stringify(leaderboard)); } catch (e) {} }
+
+  function renderLB() {
+    const sorted = [...leaderboard].sort((a, b) => b.score - a.score).slice(0, 8);
+    if (!sorted.length) {
+      lbBody.innerHTML = '<div id="lb-empty">No scores yet — play to get on the board!</div>';
+      return;
+    }
+    lbBody.innerHTML = sorted.map((e, i) => `
+      <div class="lb-row${e.id === lastScore ? ' highlight' : ''}">
+        <span class="lb-rank${i === 0 ? ' gold' : ''}">${i === 0 ? '★' : i + 1}</span>
+        <input class="lb-name-input" value="${e.name}" data-id="${e.id}" maxlength="16" placeholder="Your name"/>
+        <span class="lb-score">${e.score}</span>
+        <span class="lb-date">${e.date}</span>
+      </div>`).join('');
+    lbBody.querySelectorAll('.lb-name-input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const entry = leaderboard.find(x => x.id === inp.dataset.id);
+        if (entry) { entry.name = inp.value || 'Player'; saveLB(); }
+      });
+    });
+  }
+
+  document.getElementById('lb-clear').addEventListener('click', () => { leaderboard = []; saveLB(); renderLB(); });
+
+  function addScore(s) {
+    if (s === 0) return;
+    const id = Date.now().toString();
+    const now = new Date();
+    leaderboard.push({ id, name: 'Player', score: s, date: `${now.getMonth() + 1}/${now.getDate()}` });
+    lastScore = id;
+    saveLB(); renderLB();
+  }
+
+  function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function placeFood() {
+    let pos;
+    do { pos = { x: rnd(0, COLS - 1), y: rnd(0, ROWS - 1) }; }
+    while (snake.some(s => s.x === pos.x && s.y === pos.y));
+    food = pos;
+  }
+  function getSpeed() { return Math.max(75, 200 - (level - 1) * 18); }
+
+  function init() {
+    snake = [{ x: 9, y: 9 }, { x: 8, y: 9 }, { x: 7, y: 9 }];
+    dir = { x: 1, y: 0 }; nextDir = { x: 1, y: 0 };
+    score = 0; level = 1;
+    scoreEl.textContent = 0; lvlNum.textContent = 1; lengthEl.textContent = 3;
+    placeFood();
+  }
+
+  function step() {
+    dir = nextDir;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver();
+    if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score++; scoreEl.textContent = score; lengthEl.textContent = snake.length;
+      if (score > best) { best = score; bestEl.textContent = best; }
+      const nl = Math.floor(score / 5) + 1;
+      if (nl > level) { level = nl; lvlNum.textContent = level; playLevelUp(); } else { playEat(); }
+      placeFood();
+      clearInterval(gameLoop); gameLoop = setInterval(tick, getSpeed());
+    } else { snake.pop(); }
+    draw();
+  }
+
+  function tick() { step(); }
+
+  function draw() {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, 360, 360);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= COLS; i++) { ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, 360); ctx.stroke(); }
+    for (let j = 0; j <= ROWS; j++) { ctx.beginPath(); ctx.moveTo(0, j * CELL); ctx.lineTo(360, j * CELL); ctx.stroke(); }
+
+    snake.forEach((seg, i) => {
+      const t = i / snake.length;
+      ctx.fillStyle = i === 0 ? '#1D9E75' : `rgba(29,158,117,${1 - t * 0.55})`;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(seg.x * CELL + 1.5, seg.y * CELL + 1.5, CELL - 3, CELL - 3, 4);
+      else ctx.rect(seg.x * CELL + 1.5, seg.y * CELL + 1.5, CELL - 3, CELL - 3);
+      ctx.fill();
+      if (i === 0) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        const ex = dir.x === 1 ? CELL - 6 : dir.x === -1 ? 3 : CELL / 2 - 3;
+        const ey = dir.y === 1 ? CELL - 6 : dir.y === -1 ? 3 : CELL / 2 - 3;
+        ctx.beginPath(); ctx.arc(seg.x * CELL + ex, seg.y * CELL + ey, 2.5, 0, Math.PI * 2); ctx.fill();
+        const ex2 = dir.x === 1 ? CELL - 6 : dir.x === -1 ? 3 : CELL / 2 + 3;
+        const ey2 = dir.y === 1 ? CELL - 6 : dir.y === -1 ? 3 : CELL / 2 + 3;
+        ctx.beginPath(); ctx.arc(seg.x * CELL + ex2, seg.y * CELL + ey2, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+
+    ctx.fillStyle = '#D85A30';
+    ctx.beginPath(); ctx.arc(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, CELL / 2 - 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3B6D11';
+    ctx.fillRect(food.x * CELL + CELL / 2 - 1, food.y * CELL + 3, 2, 6);
+    ctx.fillStyle = '#5DCAA5';
+    ctx.beginPath(); ctx.ellipse(food.x * CELL + CELL / 2 + 2, food.y * CELL + 5, 4, 3, 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function gameOver() {
+    clearInterval(gameLoop); running = false; playDie();
+    addScore(score);
+    overlay.classList.remove('hidden');
+    ovTitle.textContent = 'Game over';
+    ovBig.textContent = score; ovBig.style.display = 'block';
+    ovSub.textContent = score > 0 ? `You scored ${score} point${score !== 1 ? 's' : ''}!` : 'Better luck next time!';
+    startBtn.textContent = 'Play again';
+  }
+
+  function startGame() {
+    overlay.classList.add('hidden');
+    init(); running = true;
+    clearInterval(gameLoop); gameLoop = setInterval(tick, getSpeed());
+    draw();
+  }
+
+  startBtn.addEventListener('click', startGame);
+  document.addEventListener('keydown', e => {
+    if (!running) return;
+    if (e.key === 'ArrowUp' && dir.y === 0) nextDir = { x: 0, y: -1 };
+    if (e.key === 'ArrowDown' && dir.y === 0) nextDir = { x: 0, y: 1 };
+    if (e.key === 'ArrowLeft' && dir.x === 0) nextDir = { x: -1, y: 0 };
+    if (e.key === 'ArrowRight' && dir.x === 0) nextDir = { x: 1, y: 0 };
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  });
+  document.getElementById('btn-up').addEventListener('click', () => { if (running && dir.y === 0) nextDir = { x: 0, y: -1 }; });
+  document.getElementById('btn-down').addEventListener('click', () => { if (running && dir.y === 0) nextDir = { x: 0, y: 1 }; });
+  document.getElementById('btn-left').addEventListener('click', () => { if (running && dir.x === 0) nextDir = { x: -1, y: 0 }; });
+  document.getElementById('btn-right').addEventListener('click', () => { if (running && dir.x === 0) nextDir = { x: 1, y: 0 }; });
+
+  renderLB();
+</script>
+</body>
+</html>
